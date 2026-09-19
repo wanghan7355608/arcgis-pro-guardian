@@ -6,5 +6,6 @@ __pycache__/
 *.gdb/
 *.lock
 *.pyt.xml
+docs/case-study/reproduced/
 docs/interview/*.webm
 docs/interview/arcgis-pro-guardian-demo.mp4

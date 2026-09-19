@@ -44,9 +44,19 @@ Before 工程只有一个空地图，没有图层、独立表或布局。Guardia
 
 这不是悄悄关闭检查：策略文件与报告一起提交，判断过程可以复核。生产交付时应根据团队环境把该项恢复为 warning 或 error，并配置允许的数据根目录。
 
+策略文件还通过 `fail_on` 声明交付门禁（本案例为 `error`）。复现命令里显式写的 `--fail-on never` 会覆盖它，方便生成文档时不中断；命令行参数优先于策略，`--strict` 又优先于两者。本案例两份报告的错误数都是 0，因此这两种取值得到的退出码相同，都是 0。
+
 ## 如何复现
 
-准备一个保存过的 `.aprx` 后，用 ArcGIS Pro 自带 Python 运行：
+仓库里带了一个复现脚本。它从 ArcGIS Pro 自带的空白工程重建 Before 和 After，跑完整审计，并**断言结果必须等于本文档公布的数字**：
+
+```powershell
+& 'C:\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-py3\python.exe' docs\case-study\reproduce.py
+```
+
+输出写到 `docs/case-study/reproduced/`（已在 `.gitignore` 中，不会污染仓库）。数字对不上时脚本以非零码退出并逐条列出差异，所以案例不会悄悄和证据脱节。本仓库的 `.aprx` 和 `.gdb` 不纳入版本控制，这是它比手工复现更可靠的原因：不需要事先存在任何工程文件。
+
+如果只想对已有工程跑审计，用命令行：
 
 ```powershell
 $arcgisPython = 'C:\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-py3\python.exe'

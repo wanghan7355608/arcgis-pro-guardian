@@ -2,6 +2,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 SCRIPTS = Path(__file__).parents[1] / "plugins" / "arcgis-pro-guardian" / "scripts"
@@ -11,8 +12,10 @@ from guardian_core import (  # noqa: E402
     audit_project,
     compare_with_baseline,
     merged_policy,
+    redact_report,
     render_html,
     source_kind,
+    validate_policy,
 )
 
 
@@ -27,12 +30,12 @@ class FakeDescription:
 
 
 class FakeItem:
-    def __init__(self, name, source=None, broken=False, spatial_reference="WGS 1984"):
+    def __init__(self, name, source=None, broken=False, spatial_reference="WGS 1984", is_group_layer=False):
         self.name = name
         self.longName = name
         self.dataSource = source
         self.isBroken = broken
-        self.isGroupLayer = False
+        self.isGroupLayer = is_group_layer
         self.spatial_reference = spatial_reference
 
     def supports(self, capability):
@@ -165,6 +168,80 @@ class GuardianTests(unittest.TestCase):
             report = audit_project(project_path, FakeArcPy(project), policy)
         no_layout = next(item for item in report["findings"] if item["code"] == "NO_LAYOUTS")
         self.assertEqual(no_layout["severity"], "warning")
+
+
+    def test_fail_on_is_a_validated_policy_key(self):
+        self.assertEqual(merged_policy()["fail_on"], "error")
+        self.assertEqual(merged_policy({"fail_on": "never"})["fail_on"], "never")
+        with self.assertRaises(ValueError):
+            validate_policy({"fail_on": "sometimes"})
+
+    def test_require_layout_does_not_override_an_explicit_severity(self):
+        project = FakeProject([FakeMap("Map", layers=[FakeItem("Roads", "https://example.test/roads")])], [])
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir) / "explicit.aprx"
+            project_path.write_bytes(b"fake")
+
+            silenced = merged_policy({"require_layout": True, "checks": {"NO_LAYOUTS": "off"}})
+            codes = {item["code"] for item in audit_project(project_path, FakeArcPy(project), silenced)["findings"]}
+            self.assertNotIn("NO_LAYOUTS", codes)
+
+            hardened = merged_policy({"require_layout": True, "checks": {"NO_LAYOUTS": "error"}})
+            report = audit_project(project_path, FakeArcPy(project), hardened)
+            no_layout = next(item for item in report["findings"] if item["code"] == "NO_LAYOUTS")
+            self.assertEqual(no_layout["severity"], "error")
+
+    def test_redact_report_matches_only_on_a_path_boundary(self):
+        with mock.patch("os.path.expanduser", return_value=r"C:\Users\ann"):
+            redacted = redact_report(
+                {
+                    "sibling": r"C:\Users\anna\data\roads.shp",
+                    "nested": r"C:\Users\ann\data\roads.shp",
+                    "home": r"C:\Users\ann",
+                    "unrelated": r"C:\data\roads.shp",
+                }
+            )
+        self.assertEqual(redacted["sibling"], r"C:\Users\anna\data\roads.shp")
+        self.assertEqual(redacted["nested"], r"%USERPROFILE%\data\roads.shp")
+        self.assertEqual(redacted["home"], "%USERPROFILE%")
+        self.assertEqual(redacted["unrelated"], r"C:\data\roads.shp")
+
+    def test_baseline_without_a_score_or_fingerprints_fails_closed(self):
+        report = {"summary": {"health_score": 90}, "findings": []}
+        with self.assertRaises(ValueError):
+            compare_with_baseline(report, {"findings": []})
+        with self.assertRaises(ValueError):
+            compare_with_baseline(report, {"summary": {"health_score": 50}, "findings": [{"code": "OLD"}]})
+        with self.assertRaises(ValueError):
+            compare_with_baseline(report, {"summary": {"health_score": 50}, "findings": "not-a-list"})
+
+    def test_source_kind_matches_whole_path_components(self):
+        self.assertEqual(source_kind(r"C:\data\city.gdb\roads"), "file-geodatabase")
+        self.assertEqual(source_kind(r"C:\data\old.gdb_backup\roads.shp"), "shapefile")
+        self.assertEqual(source_kind(r"C:\data\conn.sde\roads"), "enterprise-geodatabase")
+        self.assertEqual(source_kind(r"C:\data\notes.sde_backup\roads.shp"), "shapefile")
+        self.assertEqual(source_kind(r"memory\roads"), "memory")
+
+    def test_empty_map_is_detected_when_only_group_layers_are_present(self):
+        project = FakeProject(
+            [
+                FakeMap(
+                    "Grouped",
+                    layers=[
+                        FakeItem("Empty group", is_group_layer=True),
+                        FakeItem("Nested group", is_group_layer=True),
+                    ],
+                )
+            ],
+            [FakeLayout("Overview", [FakeFrame()])],
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir) / "grouped.aprx"
+            project_path.write_bytes(b"fake")
+            report = audit_project(project_path, FakeArcPy(project), merged_policy())
+        codes = {item["code"] for item in report["findings"]}
+        self.assertIn("EMPTY_MAP", codes)
+        self.assertEqual(report["metrics"]["layers"], 0)
 
 
 if __name__ == "__main__":

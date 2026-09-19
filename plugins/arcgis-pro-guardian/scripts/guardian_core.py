@@ -21,6 +21,8 @@ from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional
 SCHEMA_VERSION = 2
 TOOL_VERSION = "0.2.0"
 SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
+FAIL_ON_CHOICES = ("never", "error", "warning")
+RASTER_EXTENSIONS = (".tif", ".tiff", ".img", ".jp2", ".png", ".jpg", ".jpeg")
 
 DEFAULT_POLICY: Dict[str, Any] = {
     "checks": {
@@ -41,6 +43,7 @@ DEFAULT_POLICY: Dict[str, Any] = {
         "LAYOUT_WITHOUT_MAP_FRAME": "warning",
     },
     "score_weights": {"error": 25, "warning": 6, "info": 0},
+    "fail_on": "error",
     "require_layout": False,
     "allowed_source_roots": [],
     "blocked_source_roots": [],
@@ -100,6 +103,12 @@ def validate_policy(policy: Mapping[str, Any]) -> None:
     for key in ("allowed_source_roots", "blocked_source_roots"):
         if not isinstance(policy.get(key, []), list):
             raise ValueError("{} must be a JSON array.".format(key))
+    if policy.get("fail_on") not in FAIL_ON_CHOICES:
+        raise ValueError(
+            "Unsupported fail_on value: {} (expected one of {})".format(
+                policy.get("fail_on"), ", ".join(FAIL_ON_CHOICES)
+            )
+        )
 
 
 def finding_fingerprint(code: str, context: Mapping[str, Any]) -> str:
@@ -151,22 +160,34 @@ def is_windows_path(value: str) -> bool:
     return len(value) >= 3 and value[1:3] in (":\\", ":/")
 
 
+def path_segments(value: str) -> List[str]:
+    """Split a data source into components, ignoring the separator style used."""
+    return [segment for segment in value.replace("/", "\\").split("\\") if segment]
+
+
 def source_kind(source: str) -> str:
     lowered = source.lower().strip()
     if lowered.startswith(("http://", "https://")):
         return "web-service"
     if lowered.startswith("\\\\") or lowered.startswith("//"):
         return "unc"
-    if ".sde" in lowered:
-        return "enterprise-geodatabase"
-    if ".gdb" in lowered:
-        return "file-geodatabase"
-    if lowered.endswith(".shp"):
-        return "shapefile"
-    if lowered.endswith((".tif", ".tiff", ".img", ".jp2", ".png", ".jpg", ".jpeg")):
-        return "raster"
     if lowered.startswith(("memory\\", "in_memory\\")):
         return "memory"
+
+    # Geodatabase sources are recognised by a whole path component, not by a
+    # substring: "city.gdb\\roads" is a geodatabase layer, whereas
+    # "old.gdb_backup\\roads.shp" is a shapefile that merely mentions ".gdb".
+    segments = path_segments(lowered)
+    if any(segment.endswith(".sde") for segment in segments):
+        return "enterprise-geodatabase"
+    if any(segment.endswith(".gdb") for segment in segments):
+        return "file-geodatabase"
+    if segments:
+        leaf = segments[-1]
+        if leaf.endswith(".shp"):
+            return "shapefile"
+        if leaf.endswith(RASTER_EXTENSIONS):
+            return "raster"
     if is_windows_path(source):
         return "local-file"
     return "other"
@@ -376,10 +397,12 @@ def audit_project(project_path: Path, arcpy: Any, policy: Optional[Mapping[str, 
         map_name = str(getattr(map_obj, "name", "Unnamed map"))
         layers = list(iter_layers(map_obj))
         tables = list(map_obj.listTables()) if hasattr(map_obj, "listTables") else []
-        total_layers += len([layer for layer in layers if not getattr(layer, "isGroupLayer", False)])
+        content_layers = [layer for layer in layers if not getattr(layer, "isGroupLayer", False)]
+        total_layers += len(content_layers)
         total_tables += len(tables)
 
-        if not layers and not tables:
+        # A map holding nothing but empty group layers still ships no content.
+        if not content_layers and not tables:
             add_finding(
                 findings,
                 active_policy,
@@ -460,8 +483,15 @@ def audit_project(project_path: Path, arcpy: Any, policy: Optional[Mapping[str, 
         )
 
     if not layouts:
+        # require_layout is a convenience switch for the common case: it lifts the
+        # default "info" severity to "warning". An explicit non-default severity
+        # still wins, so a team can either silence the check with "off" or harden
+        # it to "error" without the flag silently undoing that decision.
         no_layout_policy = active_policy
-        if active_policy.get("require_layout"):
+        effective = active_policy.get("checks", {}).get(
+            "NO_LAYOUTS", DEFAULT_POLICY["checks"]["NO_LAYOUTS"]
+        )
+        if active_policy.get("require_layout") and effective == DEFAULT_POLICY["checks"]["NO_LAYOUTS"]:
             no_layout_policy = copy.deepcopy(active_policy)
             no_layout_policy["checks"]["NO_LAYOUTS"] = "warning"
         add_finding(
@@ -517,16 +547,39 @@ def audit_project(project_path: Path, arcpy: Any, policy: Optional[Mapping[str, 
     }
 
 
+def _baseline_health_score(baseline: Mapping[str, Any]) -> float:
+    score = baseline.get("summary", {}).get("health_score")
+    if isinstance(score, bool) or not isinstance(score, (int, float)):
+        raise ValueError("Baseline is missing a numeric summary.health_score.")
+    return float(score)
+
+
 def compare_with_baseline(report: Dict[str, Any], baseline: Mapping[str, Any]) -> Dict[str, Any]:
+    # Fail closed: a baseline missing its score or its fingerprints would still
+    # produce a delta, but every current finding would silently look brand new.
+    baseline_findings = baseline.get("findings", [])
+    if not isinstance(baseline_findings, list):
+        raise ValueError("Baseline findings must be a JSON array.")
+    without_fingerprint = [
+        item for item in baseline_findings if not isinstance(item, dict) or not item.get("fingerprint")
+    ]
+    if without_fingerprint:
+        raise ValueError(
+            "Baseline has {} finding(s) without a fingerprint; refusing to guess which findings were resolved.".format(
+                len(without_fingerprint)
+            )
+        )
+    baseline_score = _baseline_health_score(baseline)
+
     current_by_id = {item["fingerprint"]: item for item in report.get("findings", [])}
-    baseline_by_id = {item.get("fingerprint"): item for item in baseline.get("findings", []) if item.get("fingerprint")}
+    baseline_by_id = {item["fingerprint"]: item for item in baseline_findings}
     current_ids = set(current_by_id)
     baseline_ids = set(baseline_by_id)
     report["delta"] = {
         "new_findings": [current_by_id[key] for key in sorted(current_ids - baseline_ids)],
         "resolved_findings": [baseline_by_id[key] for key in sorted(baseline_ids - current_ids)],
         "unchanged_findings": len(current_ids & baseline_ids),
-        "health_score_change": report["summary"]["health_score"] - int(baseline.get("summary", {}).get("health_score", 0)),
+        "health_score_change": int(report["summary"]["health_score"] - baseline_score),
     }
     return report
 
@@ -541,9 +594,16 @@ def redact_report(report: Mapping[str, Any]) -> Dict[str, Any]:
             return [redact(item) for item in value]
         if isinstance(value, str) and user_profile:
             normalized_value = value.replace("/", "\\")
-            normalized_home = user_profile.replace("/", "\\")
-            if normalized_value.lower().startswith(normalized_home.lower()):
-                return "%USERPROFILE%" + normalized_value[len(normalized_home):]
+            normalized_home = user_profile.replace("/", "\\").rstrip("\\")
+            lowered_home = normalized_home.lower()
+            lowered_value = normalized_value.lower()
+            # Match on a separator boundary so a home of "C:\Users\ann" does not
+            # swallow "C:\Users\anna\data" and rewrite it into a broken path.
+            if lowered_home:
+                if lowered_value == lowered_home:
+                    return "%USERPROFILE%"
+                if lowered_value.startswith(lowered_home + "\\"):
+                    return "%USERPROFILE%" + normalized_value[len(normalized_home):]
         return value
 
     return redact(copy.deepcopy(report))

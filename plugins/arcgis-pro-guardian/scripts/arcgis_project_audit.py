@@ -34,8 +34,8 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     parser.add_argument(
         "--fail-on",
         choices=("never", "error", "warning"),
-        default="error",
-        help="Exit 1 at this severity threshold (default: error)",
+        default=None,
+        help="Exit 1 at this severity threshold (default: the policy's fail_on, else error)",
     )
     parser.add_argument(
         "--redact-paths",
@@ -52,17 +52,29 @@ def load_json_report(path: Path):
         report = json.load(handle)
     if not isinstance(report, dict) or "findings" not in report:
         raise ValueError("Baseline is not a Guardian JSON report: {}".format(path))
+    score = report.get("summary", {}).get("health_score")
+    if isinstance(score, bool) or not isinstance(score, (int, float)):
+        raise ValueError("Baseline is missing a numeric summary.health_score: {}".format(path))
     return report
+
+
+def resolve_fail_on(args: argparse.Namespace, policy: dict) -> str:
+    """Precedence: --strict, an explicit --fail-on, the policy's fail_on, then error."""
+    if args.strict:
+        return "warning"
+    if args.fail_on:
+        return args.fail_on
+    return str(policy.get("fail_on", "error"))
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv or sys.argv[1:])
     output_format = "json" if args.json else args.format
-    fail_on = "warning" if args.strict else args.fail_on
 
     try:
         policy = load_policy(Path(args.policy)) if args.policy else load_policy(None)
         baseline = load_json_report(Path(args.baseline)) if args.baseline else None
+        fail_on = resolve_fail_on(args, policy)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print("Configuration error: {}".format(exc), file=sys.stderr)
         return 2

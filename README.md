@@ -28,6 +28,14 @@ The reproducible ArcPy case starts from a saved project with an empty map and no
 - [Practice the technical Q&A](docs/interview/qa.zh-CN.md)
 - [Follow the 66-second demo script](docs/interview/demo-script.zh-CN.md)
 
+Rebuild and verify the whole case with one command, using the Python interpreter bundled with ArcGIS Pro:
+
+```powershell
+& 'C:\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-py3\python.exe' docs\case-study\reproduce.py
+```
+
+The script rebuilds both projects from ArcGIS Pro's own blank project, then asserts the result still matches the published numbers and exits non-zero if it does not. No `.aprx` needs to be committed, so the case study cannot drift away from its evidence.
+
 The sample data is synthetic, but both reports were produced from real saved `.aprx` files using ArcGIS Pro's ArcPy runtime. Published reports redact the Windows user-profile prefix.
 
 ## Why it exists
@@ -104,15 +112,16 @@ Copy [`default-policy.json`](plugins/arcgis-pro-guardian/assets/default-policy.j
     "NO_LAYOUTS": "warning",
     "ABSOLUTE_SOURCE_PATH": "error"
   },
+  "fail_on": "warning",
   "require_layout": true,
   "allowed_source_roots": ["D:\\PublishedGIS", "\\\\fileserver\\gis"],
   "blocked_source_roots": ["C:\\Users"]
 }
 ```
 
-Then run with `--policy .\guardian-policy.json --fail-on warning`.
+Then run with `--policy .\guardian-policy.json`. The policy also carries the delivery gate, so `fail_on` there replaces the need for a `--fail-on` flag on every run. An explicit `--fail-on` still overrides the policy, and `--strict` overrides both.
 
-Any check can be set to `error`, `warning`, `info`, or `off`. Guardian fails closed on invalid policy or baseline files instead of silently ignoring them.
+Any check can be set to `error`, `warning`, `info`, or `off`. `require_layout` is a shortcut that lifts the default `NO_LAYOUTS: "info"` to `warning`; an explicit non-default severity always wins, so a team can silence the check with `off` or harden it to `error` without the flag undoing that choice. Guardian fails closed on invalid policy or baseline files instead of silently ignoring them.
 
 ## Install as a Codex plugin
 

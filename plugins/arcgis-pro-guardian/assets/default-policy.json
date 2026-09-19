@@ -21,6 +21,7 @@
     "warning": 6,
     "info": 0
   },
+  "fail_on": "error",
   "require_layout": false,
   "allowed_source_roots": [],
   "blocked_source_roots": []

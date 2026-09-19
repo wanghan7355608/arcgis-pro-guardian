@@ -17,6 +17,6 @@ jobs:
         with:
           python-version: "3.11"
       - name: Compile scripts
-        run: python -m py_compile plugins/arcgis-pro-guardian/scripts/*.py
+        run: python -m py_compile plugins/arcgis-pro-guardian/scripts/*.py docs/case-study/reproduce.py
       - name: Run tests
         run: python -m unittest discover -s tests -v

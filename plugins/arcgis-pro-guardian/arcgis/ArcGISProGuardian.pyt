@@ -140,11 +140,16 @@ class AuditProject:
         report_format = parameters[2].valueAsText.lower()
         policy_path = Path(parameters[3].valueAsText) if parameters[3].valueAsText else None
         baseline_path = Path(parameters[4].valueAsText) if parameters[4].valueAsText else None
-        fail_on = parameters[5].valueAsText.lower()
         redact_paths = bool(parameters[6].value)
 
         messages.addMessage("Opening saved project: {}".format(project_path))
         active_policy = load_policy(policy_path)
+        # An untouched Fail Tool On parameter defers to the policy file, mirroring
+        # the CLI where an omitted --fail-on does the same.
+        if parameters[5].altered and parameters[5].valueAsText:
+            fail_on = parameters[5].valueAsText.lower()
+        else:
+            fail_on = str(active_policy.get("fail_on", "error"))
         report = audit_project(project_path, arcpy, active_policy)
 
         if baseline_path:
