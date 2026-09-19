@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">ArcGIS Pro Guardian</title>
+  <desc id="desc">A green shield containing layered map contours and a check mark.</desc>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#173c2d"/>
+      <stop offset="1" stop-color="#19724a"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#g)" d="M128 12 224 48v72c0 62-38 106-96 124-58-18-96-62-96-124V48z"/>
+  <path fill="none" stroke="#b8e348" stroke-width="12" stroke-linecap="round" d="M62 86c34-18 82-21 132-4M57 116c41-17 96-17 142 3M62 148c36-11 77-9 113 5" opacity=".9"/>
+  <path fill="none" stroke="#fff" stroke-width="17" stroke-linecap="round" stroke-linejoin="round" d="m80 153 30 29 66-77"/>
+</svg>

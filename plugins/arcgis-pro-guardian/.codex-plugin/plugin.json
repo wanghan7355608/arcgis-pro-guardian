@@ -1,7 +1,7 @@
 {
   "name": "arcgis-pro-guardian",
-  "version": "0.1.0",
-  "description": "Audit saved ArcGIS Pro projects for broken sources, portability risks, spatial-reference drift, and release-readiness issues.",
+  "version": "0.2.0+codex.20260919132403",
+  "description": "Score, diff, and report ArcGIS Pro project risks with a local-first, policy-driven audit engine.",
   "author": {
     "name": "ArcGIS Pro Guardian contributors"
   },
@@ -18,16 +18,24 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "ArcGIS Pro Guardian",
-    "shortDescription": "Find ArcGIS Pro project risks before handoff.",
-    "longDescription": "Run a local, read-only ArcPy audit over a saved .aprx project and get structured findings for broken layers, missing data, path portability, duplicate names, and spatial-reference drift.",
+    "shortDescription": "Score and diff ArcGIS Pro project health.",
+    "longDescription": "Run a local, read-only ArcPy audit over a saved .aprx project, apply team policy, compare against a baseline, and generate text, JSON, Markdown, or standalone HTML reports.",
     "developerName": "ArcGIS Pro Guardian contributors",
     "category": "Developer Tools",
-    "capabilities": ["Interactive"],
-    "defaultPrompt": [
-      "Audit this ArcGIS Pro project for release risks.",
-      "Find broken layers and missing data in this .aprx.",
-      "Check whether this project is portable to another machine."
+    "capabilities": [
+      "Interactive",
+      "Write"
     ],
-    "brandColor": "#2E7D32"
+    "defaultPrompt": [
+      "Score this ArcGIS Pro project and create an HTML report.",
+      "Compare this .aprx audit against the previous baseline.",
+      "Enforce our GIS delivery policy on this project."
+    ],
+    "brandColor": "#19724A",
+    "composerIcon": "./assets/guardian.svg",
+    "logo": "./assets/guardian.svg",
+    "screenshots": [
+      "./assets/report-preview.png"
+    ]
   }
 }

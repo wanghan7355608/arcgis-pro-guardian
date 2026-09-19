@@ -1,0 +1,27 @@
+{
+  "checks": {
+    "NO_MAPS": "error",
+    "EMPTY_MAP": "warning",
+    "BROKEN_LAYER": "error",
+    "BROKEN_TABLE": "error",
+    "MISSING_DATA_SOURCE": "error",
+    "ABSOLUTE_SOURCE_PATH": "warning",
+    "UNC_SOURCE_PATH": "warning",
+    "SOURCE_OUTSIDE_ALLOWED_ROOTS": "warning",
+    "SOURCE_IN_BLOCKED_ROOT": "error",
+    "DUPLICATE_LAYER_NAMES": "warning",
+    "DUPLICATE_TABLE_NAMES": "warning",
+    "UNKNOWN_SPATIAL_REFERENCE": "warning",
+    "MIXED_SPATIAL_REFERENCES": "warning",
+    "NO_LAYOUTS": "info",
+    "LAYOUT_WITHOUT_MAP_FRAME": "warning"
+  },
+  "score_weights": {
+    "error": 25,
+    "warning": 6,
+    "info": 0
+  },
+  "require_layout": false,
+  "allowed_source_roots": [],
+  "blocked_source_roots": []
+}

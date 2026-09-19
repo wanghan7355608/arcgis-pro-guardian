@@ -1,41 +1,111 @@
-# ArcGIS Pro Guardian
+<p align="center">
+  <img src="plugins/arcgis-pro-guardian/assets/guardian.svg" width="112" alt="ArcGIS Pro Guardian shield">
+</p>
 
-ArcGIS Pro Guardian is a local-first Codex plugin for reviewing saved ArcGIS Pro projects before handoff, publication, or migration to another machine.
+<h1 align="center">ArcGIS Pro Guardian</h1>
 
-It runs a read-only ArcPy audit over a saved `.aprx` and reports:
+<p align="center"><strong>A local-first release gate for ArcGIS Pro projects.</strong></p>
 
-- broken layers and unresolved data sources;
-- absolute/UNC paths that make a project machine-bound;
-- duplicate layer names;
-- unknown or mixed spatial references;
-- empty maps and missing layouts as review context.
+ArcGIS Pro Guardian audits a saved `.aprx`, turns hidden project risks into stable findings, assigns a 0–100 health score, compares regressions with a baseline, and produces a polished standalone HTML report. It reads project metadata through ArcPy and never saves or rewrites the project.
 
-The niche is deliberate: existing public ArcGIS AI projects mostly expose geoprocessing tools or live MCP control. This plugin focuses on the preflight gap between “the project opens on my machine” and “the project is safe to hand off.” A global claim that no one has ever built the same idea is not provable; this repository records the specific scope and implementation so the differentiation is concrete.
+![ArcGIS Pro Guardian HTML report](plugins/arcgis-pro-guardian/assets/report-preview.png)
 
-## Requirements
+## Why it exists
 
-- ArcGIS Pro with its bundled Python environment;
-- a saved `.aprx` file;
-- Codex with local plugin support.
+ArcGIS automation projects usually focus on running geoprocessing tools or controlling a live Pro session. Guardian focuses on the last mile: proving that a project is healthy, portable, and ready for another person or machine.
 
-## Run the audit directly
+## Highlights
+
+| Capability | What you get |
+|---|---|
+| Project inventory | Maps, layouts, map frames, layers, tables, and data sources |
+| Risk detection | Broken items, missing sources, machine-bound paths, duplicate names, unknown and mixed spatial references |
+| Policy engine | Per-check severity overrides plus allowed and blocked source roots |
+| Health score | 0–100 score, A–F grade, and pass/review/fail status |
+| Baseline diff | New, resolved, and unchanged findings with score movement |
+| Report formats | Text, JSON, Markdown, and a responsive single-file HTML dashboard |
+| Automation | Stable exit codes and ArcPy-free tests that run on GitHub Actions |
+| Privacy | Optional user-profile path redaction before sharing reports |
+
+## Quick start
 
 ```powershell
 $arcgisPython = 'C:\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-py3\python.exe'
-& $arcgisPython .\plugins\arcgis-pro-guardian\scripts\arcgis_project_audit.py `
-  --project 'C:\path\to\project.aprx' --json
+$guardian = '.\plugins\arcgis-pro-guardian\scripts\arcgis_project_audit.py'
+
+& $arcgisPython $guardian `
+  --project 'C:\GIS\Delivery\City.aprx' `
+  --format html `
+  --output '.\guardian-report.html' `
+  --redact-paths
 ```
 
-The script never saves the project or rewrites data sources. Use `--strict` in CI-style checks to return exit code `1` for warnings or errors.
+Exit codes are designed for automation:
 
-## Install from this repository
+- `0`: the configured threshold passed;
+- `1`: findings reached the `--fail-on` threshold;
+- `2`: ArcPy, project, baseline, policy, or output failure.
+
+## Save and compare a baseline
+
+```powershell
+& $arcgisPython $guardian `
+  --project 'C:\GIS\Delivery\City.aprx' `
+  --format json `
+  --output '.\guardian-baseline.json' `
+  --fail-on never
+
+& $arcgisPython $guardian `
+  --project 'C:\GIS\Delivery\City.aprx' `
+  --baseline '.\guardian-baseline.json' `
+  --format markdown `
+  --output '.\guardian-delta.md'
+```
+
+Finding fingerprints are based on the check code and context, so baseline comparisons remain stable across runs.
+
+## Team policy
+
+Copy [`default-policy.json`](plugins/arcgis-pro-guardian/assets/default-policy.json) and customize only what your delivery process needs:
+
+```json
+{
+  "checks": {
+    "NO_LAYOUTS": "warning",
+    "ABSOLUTE_SOURCE_PATH": "error"
+  },
+  "require_layout": true,
+  "allowed_source_roots": ["D:\\PublishedGIS", "\\\\fileserver\\gis"],
+  "blocked_source_roots": ["C:\\Users"]
+}
+```
+
+Then run with `--policy .\guardian-policy.json --fail-on warning`.
+
+Any check can be set to `error`, `warning`, `info`, or `off`. Guardian fails closed on invalid policy or baseline files instead of silently ignoring them.
+
+## Install as a Codex plugin
 
 ```powershell
 codex plugin marketplace add https://github.com/wanghan7355608/arcgis-pro-guardian
 codex plugin add arcgis-pro-guardian@personal
 ```
 
-The marketplace manifest is at `.agents/plugins/marketplace.json`.
+The marketplace manifest lives at `.agents/plugins/marketplace.json`.
+
+## Development
+
+The core module has no import-time ArcPy dependency, so policy, scoring, diffing, and rendering tests run anywhere:
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+Real `.aprx` audits still require the Python interpreter bundled with ArcGIS Pro.
+
+## Scope and safety
+
+Guardian does not inspect feature rows, contact web services, repair paths, or save projects. Reports may include local and UNC paths; use `--redact-paths` before publishing them.
 
 ## License
 
