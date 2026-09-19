@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ArcGIS Pro Guardian · 66 秒演示</title>
+  <style>
+    html, body { margin: 0; min-height: 100%; background: #071510; color: #fff; font-family: "Microsoft YaHei", "Segoe UI", sans-serif; }
+    body { display: grid; place-items: center; }
+    canvas { width: min(100vw, 1280px); height: auto; aspect-ratio: 16 / 9; box-shadow: 0 30px 90px #0009; }
+    button { position: fixed; right: 20px; bottom: 20px; border: 0; border-radius: 999px; padding: 12px 18px; background: #b8e348; color: #10231b; font-weight: 800; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <canvas id="stage" width="1280" height="720" aria-label="ArcGIS Pro Guardian 演示动画"></canvas>
+  <button id="replay" type="button">重新播放</button>
+  <script>
+    const canvas = document.getElementById("stage");
+    const ctx = canvas.getContext("2d");
+    const beforeImage = new Image();
+    const afterImage = new Image();
+    beforeImage.src = "../case-study/before-report.png";
+    afterImage.src = "../case-study/after-report.png";
+
+    const COLORS = {
+      ink: "#10231b", green: "#2aa66d", lime: "#b8e348", paper: "#f4f7f4",
+      muted: "#a7b8ae", white: "#ffffff", amber: "#ffbf47", red: "#ff6970"
+    };
+    const DURATION = 66;
+    let startedAt = performance.now();
+    let animationFrame = 0;
+
+    function roundedRect(x, y, w, h, r) {
+      const rr = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + rr, y);
+      ctx.arcTo(x + w, y, x + w, y + h, rr);
+      ctx.arcTo(x + w, y + h, x, y + h, rr);
+      ctx.arcTo(x, y + h, x, y, rr);
+      ctx.arcTo(x, y, x + w, y, rr);
+      ctx.closePath();
+    }
+
+    function background(progress) {
+      const gradient = ctx.createLinearGradient(0, 0, 1280, 720);
+      gradient.addColorStop(0, "#071510");
+      gradient.addColorStop(0.55, "#0d281d");
+      gradient.addColorStop(1, "#173c2d");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 1280, 720);
+      ctx.save();
+      ctx.globalAlpha = 0.12;
+      ctx.strokeStyle = COLORS.lime;
+      ctx.lineWidth = 1;
+      const offset = (progress * 36) % 36;
+      for (let x = -36 + offset; x < 1320; x += 36) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 720); ctx.stroke();
+      }
+      for (let y = -36 + offset; y < 760; y += 36) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1280, y); ctx.stroke();
+      }
+      ctx.restore();
+      ctx.fillStyle = COLORS.lime;
+      ctx.fillRect(0, 0, 1280 * Math.min(progress, 1), 6);
+    }
+
+    function text(value, x, y, size, color = COLORS.white, weight = 700, align = "left") {
+      ctx.font = `${weight} ${size}px "Microsoft YaHei", "Segoe UI", sans-serif`;
+      ctx.fillStyle = color;
+      ctx.textAlign = align;
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(value, x, y);
+    }
+
+    function paragraph(lines, x, y, size = 26, gap = 44, color = COLORS.muted) {
+      lines.forEach((line, index) => text(line, x, y + index * gap, size, color, 500));
+    }
+
+    function pill(label, x, y, color = COLORS.lime) {
+      ctx.font = '800 18px "Microsoft YaHei", "Segoe UI", sans-serif';
+      const width = ctx.measureText(label).width + 34;
+      roundedRect(x, y, width, 38, 19);
+      ctx.fillStyle = color;
+      ctx.fill();
+      text(label, x + 17, y + 26, 18, COLORS.ink, 800);
+    }
+
+    function card(x, y, w, h, title, value, accent) {
+      roundedRect(x, y, w, h, 24);
+      ctx.fillStyle = "#ffffff10";
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff22";
+      ctx.stroke();
+      text(value, x + 26, y + 66, 42, accent, 800);
+      text(title, x + 26, y + 104, 19, COLORS.muted, 500);
+    }
+
+    function imageCard(image, x, y, w, h) {
+      ctx.save();
+      roundedRect(x, y, w, h, 22);
+      ctx.clip();
+      ctx.fillStyle = COLORS.paper;
+      ctx.fillRect(x, y, w, h);
+      if (image.complete && image.naturalWidth) {
+        const scale = Math.max(w / image.naturalWidth, h / image.naturalHeight);
+        const dw = image.naturalWidth * scale;
+        const dh = image.naturalHeight * scale;
+        ctx.drawImage(image, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+      }
+      ctx.restore();
+      ctx.strokeStyle = "#ffffff33";
+      ctx.lineWidth = 2;
+      roundedRect(x, y, w, h, 22);
+      ctx.stroke();
+    }
+
+    function sceneTitle() {
+      pill("OPEN-SOURCE · LOCAL-FIRST", 82, 88);
+      text("ArcGIS Pro Guardian", 82, 228, 68, COLORS.white, 800);
+      text("把 .aprx 隐患变成可量化的交付门禁", 82, 304, 38, COLORS.lime, 700);
+      paragraph([
+        "只读审计 · 健康评分 · 基线差异 · 策略配置",
+        "ArcPy / Python Toolbox / HTML / JSON / CI"
+      ], 86, 396, 27, 48);
+      text("66 秒项目演示", 82, 604, 20, COLORS.muted, 600);
+    }
+
+    function sceneBefore() {
+      pill("01 · 发现问题", 74, 66, COLORS.amber);
+      text("Before：能打开 ≠ 能交付", 74, 152, 40);
+      imageCard(beforeImage, 650, 94, 554, 452);
+      card(74, 224, 240, 126, "健康分", "88 / B", COLORS.amber);
+      card(330, 224, 240, 126, "警告", "2", COLORS.amber);
+      paragraph(["EMPTY_MAP：地图为空", "NO_LAYOUTS：缺少打印布局"], 78, 426, 27, 52, COLORS.white);
+      text("问题来自真实 .aprx 只读审计", 74, 626, 21, COLORS.muted, 500);
+    }
+
+    function sceneAudit() {
+      pill("02 · 审计引擎", 74, 66);
+      text("一次扫描，覆盖项目交付关键面", 74, 152, 43);
+      const items = [
+        ["数据源", "断链、缺失、绝对路径"], ["空间参考", "未知与混用坐标系"],
+        ["地图结构", "空地图、重名图层"], ["布局", "地图框与打印交付"],
+        ["策略", "团队规则和严重级别"], ["基线", "新增、解决、未变化"]
+      ];
+      items.forEach((item, index) => {
+        const col = index % 3;
+        const row = Math.floor(index / 3);
+        const x = 74 + col * 382;
+        const y = 214 + row * 176;
+        roundedRect(x, y, 350, 142, 22);
+        ctx.fillStyle = "#ffffff0f"; ctx.fill();
+        ctx.strokeStyle = "#ffffff20"; ctx.stroke();
+        text(String(index + 1).padStart(2, "0"), x + 24, y + 44, 18, COLORS.lime, 800);
+        text(item[0], x + 24, y + 86, 29, COLORS.white, 800);
+        text(item[1], x + 24, y + 118, 18, COLORS.muted, 500);
+      });
+    }
+
+    function sceneRepair() {
+      pill("03 · 改进工程", 74, 66);
+      text("不是“刷分”，而是把风险变成可解释决策", 74, 152, 41);
+      const steps = [
+        ["1", "补充数据", "WGS 84 样例要素类"],
+        ["2", "补充布局", "导入官方 A3 Layout 模板"],
+        ["3", "清理模板", "移除未知坐标系底图"],
+        ["4", "显式策略", "本地绝对路径降为 info"]
+      ];
+      steps.forEach((step, index) => {
+        const y = 220 + index * 102;
+        roundedRect(84, y, 78, 70, 20); ctx.fillStyle = COLORS.lime; ctx.fill();
+        text(step[0], 123, y + 48, 28, COLORS.ink, 900, "center");
+        text(step[1], 194, y + 31, 27, COLORS.white, 800);
+        text(step[2], 194, y + 61, 20, COLORS.muted, 500);
+      });
+      roundedRect(790, 216, 392, 394, 30); ctx.fillStyle = "#ffffff0f"; ctx.fill();
+      text("READ-ONLY", 986, 314, 20, COLORS.lime, 800, "center");
+      text("不改源数据", 986, 386, 38, COLORS.white, 800, "center");
+      text("不覆盖原工程", 986, 446, 38, COLORS.white, 800, "center");
+      text("所有策略均可追溯", 986, 520, 21, COLORS.muted, 500, "center");
+    }
+
+    function sceneAfter() {
+      pill("04 · 基线对比", 74, 66);
+      text("After：100 / A，+12 分", 74, 152, 40);
+      imageCard(afterImage, 610, 92, 594, 468);
+      card(74, 222, 240, 126, "健康分", "100 / A", COLORS.lime);
+      card(330, 222, 220, 126, "分数变化", "+12", COLORS.lime);
+      card(74, 370, 240, 126, "已解决", "2", COLORS.lime);
+      card(330, 370, 220, 126, "错误 / 警告", "0 / 0", COLORS.lime);
+      text("新增 2 条 info：保留本地绝对路径提示，不阻断本次演示交付", 74, 610, 21, COLORS.muted, 500);
+    }
+
+    function sceneEngineering() {
+      pill("05 · 工程化", 74, 66);
+      text("从脚本到可维护的开源插件", 74, 152, 43);
+      const labels = ["ArcPy 审计核心", "ArcGIS Pro Python Toolbox", "4 种报告格式", "策略与退出码", "单元测试", "GitHub Actions"];
+      labels.forEach((label, index) => {
+        const angle = (Math.PI * 2 * index) / labels.length - Math.PI / 2;
+        const x = 640 + Math.cos(angle) * 350;
+        const y = 395 + Math.sin(angle) * 205;
+        roundedRect(x - 145, y - 44, 290, 88, 22);
+        ctx.fillStyle = "#ffffff10"; ctx.fill(); ctx.strokeStyle = "#ffffff22"; ctx.stroke();
+        text(label, x, y + 8, 22, COLORS.white, 700, "center");
+      });
+      ctx.strokeStyle = COLORS.lime; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(640, 395, 112, 0, Math.PI * 2); ctx.stroke();
+      text("GUARDIAN", 640, 388, 24, COLORS.lime, 900, "center");
+      text("release gate", 640, 425, 18, COLORS.muted, 500, "center");
+    }
+
+    function sceneEnd() {
+      pill("复试项目作品", 82, 92);
+      text("可演示 · 可解释 · 可复现", 82, 246, 62, COLORS.white, 800);
+      text("ArcGIS Pro Guardian", 82, 332, 44, COLORS.lime, 800);
+      paragraph([
+        "GitHub：wanghan7355608/arcgis-pro-guardian",
+        "关键词：GIS 交付质量、自动化审计、可配置门禁"
+      ], 86, 430, 25, 48);
+      text("MIT License", 86, 610, 19, COLORS.muted, 600);
+    }
+
+    function renderFrame(seconds) {
+      const clamped = Math.min(seconds, DURATION);
+      background(clamped / DURATION);
+      if (clamped < 8) sceneTitle();
+      else if (clamped < 18) sceneBefore();
+      else if (clamped < 29) sceneAudit();
+      else if (clamped < 41) sceneRepair();
+      else if (clamped < 53) sceneAfter();
+      else if (clamped < 62) sceneEngineering();
+      else sceneEnd();
+    }
+
+    function animate(now) {
+      const elapsed = (now - startedAt) / 1000;
+      renderFrame(elapsed % DURATION);
+      animationFrame = requestAnimationFrame(animate);
+    }
+
+    function restart() {
+      startedAt = performance.now();
+    }
+
+    document.getElementById("replay").addEventListener("click", restart);
+    animationFrame = requestAnimationFrame(animate);
+
+    window.assetsReady = () => beforeImage.complete && beforeImage.naturalWidth && afterImage.complete && afterImage.naturalWidth;
+    window.freezeDemoAt = (seconds) => {
+      cancelAnimationFrame(animationFrame);
+      renderFrame(seconds);
+    };
+  </script>
+</body>
+</html>

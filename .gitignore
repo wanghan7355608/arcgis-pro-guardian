@@ -5,3 +5,6 @@ __pycache__/
 *.aprx
 *.gdb/
 *.lock
+*.pyt.xml
+docs/interview/*.webm
+docs/interview/arcgis-pro-guardian-demo.mp4

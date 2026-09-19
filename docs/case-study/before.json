@@ -1,0 +1,51 @@
+{
+  "schema_version": 2,
+  "tool_version": "0.2.0",
+  "generated_at": "2026-09-19T13:52:24.090385+00:00",
+  "project": "%USERPROFILE%\\Documents\\Codex\\2026-09-19\\jei\\outputs\\arcgis-pro-guardian-demo\\GuardianDemo.aprx",
+  "project_name": "GuardianDemo.aprx",
+  "summary": {
+    "errors": 0,
+    "warnings": 2,
+    "info": 0,
+    "status": "review",
+    "health_score": 88,
+    "grade": "B"
+  },
+  "metrics": {
+    "maps": 1,
+    "layouts": 0,
+    "layers": 0,
+    "tables": 0,
+    "data_sources": 0
+  },
+  "maps": [
+    {
+      "name": "Map",
+      "layer_count": 0,
+      "table_count": 0,
+      "layers": [],
+      "tables": []
+    }
+  ],
+  "layouts": [],
+  "findings": [
+    {
+      "code": "EMPTY_MAP",
+      "severity": "warning",
+      "message": "Map contains no layers or standalone tables.",
+      "recommendation": "Populate the map or remove it before handoff.",
+      "fingerprint": "08f5d876df235f29",
+      "context": {
+        "map": "Map"
+      }
+    },
+    {
+      "code": "NO_LAYOUTS",
+      "severity": "warning",
+      "message": "Project contains no layouts.",
+      "recommendation": "Add a layout if the deliverable is expected to include printable output.",
+      "fingerprint": "87b51ccd60df62aa"
+    }
+  ]
+}

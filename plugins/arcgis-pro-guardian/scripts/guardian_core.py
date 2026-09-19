@@ -661,7 +661,7 @@ def render_html(report: Mapping[str, Any]) -> str:
 :root{{--ink:#10231b;--muted:#5e6f66;--paper:#f4f7f4;--card:#fff;--line:#dce5df;--green:#19724a;--lime:#b8e348;--red:#c9363e;--amber:#b26a00}}
 *{{box-sizing:border-box}}body{{margin:0;background:linear-gradient(135deg,#eef7f1,#f7f4ea);color:var(--ink);font:15px/1.55 Inter,Segoe UI,Arial,sans-serif}}
 .shell{{max-width:1180px;margin:auto;padding:48px 24px 72px}}header{{display:flex;justify-content:space-between;gap:24px;align-items:end;margin-bottom:24px}}
-.eyebrow{{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}}h1{{font-size:clamp(30px,5vw,58px);line-height:1;margin:.2em 0}}
+.eyebrow{{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}}header>div:first-child{{min-width:0}}h1{{font-size:clamp(30px,5vw,58px);line-height:1;margin:.2em 0;overflow-wrap:anywhere}}
 .path{{color:var(--muted);word-break:break-all}}.score{{min-width:180px;border-radius:24px;padding:22px;color:#fff;background:#173c2d;box-shadow:0 14px 36px #173c2d22}}
 .score b{{display:block;font-size:46px;line-height:1}}.score span{{opacity:.8}}.status-pass{{border-top:8px solid var(--lime)}}.status-review{{border-top:8px solid var(--amber)}}.status-fail{{border-top:8px solid var(--red)}}
 .metric-grid{{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:24px 0}}.metric-grid div{{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}}

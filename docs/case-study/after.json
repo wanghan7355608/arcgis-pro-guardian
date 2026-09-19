@@ -1,0 +1,140 @@
+{
+  "schema_version": 2,
+  "tool_version": "0.2.0",
+  "generated_at": "2026-09-19T13:52:30.026631+00:00",
+  "project": "%USERPROFILE%\\Documents\\Codex\\2026-09-19\\jei\\outputs\\arcgis-pro-guardian-demo\\interview-case\\GuardianDemoImprovedV2.aprx",
+  "project_name": "GuardianDemoImprovedV2.aprx",
+  "summary": {
+    "errors": 0,
+    "warnings": 0,
+    "info": 2,
+    "status": "pass",
+    "health_score": 100,
+    "grade": "A"
+  },
+  "metrics": {
+    "maps": 2,
+    "layouts": 1,
+    "layers": 2,
+    "tables": 0,
+    "data_sources": 2
+  },
+  "maps": [
+    {
+      "name": "Map",
+      "layer_count": 1,
+      "table_count": 0,
+      "layers": [
+        {
+          "name": "Review Sites",
+          "broken": false,
+          "data_source": "%USERPROFILE%\\Documents\\Codex\\2026-09-19\\jei\\outputs\\arcgis-pro-guardian-demo\\interview-case\\guardian_demo.gdb\\review_sites",
+          "source_kind": "file-geodatabase",
+          "source_exists": true,
+          "spatial_reference": "GCS_WGS_1984"
+        }
+      ],
+      "tables": []
+    },
+    {
+      "name": "Light Grey Base",
+      "layer_count": 1,
+      "table_count": 0,
+      "layers": [
+        {
+          "name": "Review Sites",
+          "broken": false,
+          "data_source": "%USERPROFILE%\\Documents\\Codex\\2026-09-19\\jei\\outputs\\arcgis-pro-guardian-demo\\interview-case\\guardian_demo.gdb\\review_sites",
+          "source_kind": "file-geodatabase",
+          "source_exists": true,
+          "spatial_reference": "GCS_WGS_1984"
+        }
+      ],
+      "tables": []
+    }
+  ],
+  "layouts": [
+    {
+      "name": "Minimal A3 Landscape",
+      "map_frame_count": 1,
+      "map_frames": [
+        "Map Frame"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "code": "ABSOLUTE_SOURCE_PATH",
+      "severity": "info",
+      "message": "Data source is bound to an absolute local path.",
+      "recommendation": "Package the source with the project or move it under an approved shared root.",
+      "fingerprint": "17ed7a4d5ee76c5d",
+      "context": {
+        "data_source": "%USERPROFILE%\\Documents\\Codex\\2026-09-19\\jei\\outputs\\arcgis-pro-guardian-demo\\interview-case\\guardian_demo.gdb\\review_sites",
+        "map": "Light Grey Base",
+        "layer": "Review Sites"
+      }
+    },
+    {
+      "code": "ABSOLUTE_SOURCE_PATH",
+      "severity": "info",
+      "message": "Data source is bound to an absolute local path.",
+      "recommendation": "Package the source with the project or move it under an approved shared root.",
+      "fingerprint": "3d6b8683dae9b15d",
+      "context": {
+        "data_source": "%USERPROFILE%\\Documents\\Codex\\2026-09-19\\jei\\outputs\\arcgis-pro-guardian-demo\\interview-case\\guardian_demo.gdb\\review_sites",
+        "map": "Map",
+        "layer": "Review Sites"
+      }
+    }
+  ],
+  "delta": {
+    "new_findings": [
+      {
+        "code": "ABSOLUTE_SOURCE_PATH",
+        "severity": "info",
+        "message": "Data source is bound to an absolute local path.",
+        "recommendation": "Package the source with the project or move it under an approved shared root.",
+        "fingerprint": "17ed7a4d5ee76c5d",
+        "context": {
+          "data_source": "%USERPROFILE%\\Documents\\Codex\\2026-09-19\\jei\\outputs\\arcgis-pro-guardian-demo\\interview-case\\guardian_demo.gdb\\review_sites",
+          "map": "Light Grey Base",
+          "layer": "Review Sites"
+        }
+      },
+      {
+        "code": "ABSOLUTE_SOURCE_PATH",
+        "severity": "info",
+        "message": "Data source is bound to an absolute local path.",
+        "recommendation": "Package the source with the project or move it under an approved shared root.",
+        "fingerprint": "3d6b8683dae9b15d",
+        "context": {
+          "data_source": "%USERPROFILE%\\Documents\\Codex\\2026-09-19\\jei\\outputs\\arcgis-pro-guardian-demo\\interview-case\\guardian_demo.gdb\\review_sites",
+          "map": "Map",
+          "layer": "Review Sites"
+        }
+      }
+    ],
+    "resolved_findings": [
+      {
+        "code": "EMPTY_MAP",
+        "severity": "warning",
+        "message": "Map contains no layers or standalone tables.",
+        "recommendation": "Populate the map or remove it before handoff.",
+        "fingerprint": "08f5d876df235f29",
+        "context": {
+          "map": "Map"
+        }
+      },
+      {
+        "code": "NO_LAYOUTS",
+        "severity": "warning",
+        "message": "Project contains no layouts.",
+        "recommendation": "Add a layout if the deliverable is expected to include printable output.",
+        "fingerprint": "87b51ccd60df62aa"
+      }
+    ],
+    "unchanged_findings": 0,
+    "health_score_change": 12
+  }
+}

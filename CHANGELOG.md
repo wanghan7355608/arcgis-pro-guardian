@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added a reproducible ArcPy Before/After case study with redacted JSON and HTML evidence.
+- Added a 66-second H.264 demo, a three-minute Chinese interview pitch, and technical Q&A notes.
+- Fixed mobile overflow for long ArcGIS Pro project names in HTML reports.
+
 ## 0.2.0
 
 - Added a native ArcGIS Pro Python Toolbox with an **Audit ArcGIS Pro Project** geoprocessing tool.

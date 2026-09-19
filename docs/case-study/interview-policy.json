@@ -1,0 +1,9 @@
+{
+  "checks": {
+    "ABSOLUTE_SOURCE_PATH": "info"
+  },
+  "require_layout": true,
+  "fail_on": "error",
+  "allowed_source_roots": [],
+  "blocked_source_roots": []
+}

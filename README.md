@@ -10,6 +10,26 @@ ArcGIS Pro Guardian audits a saved `.aprx`, turns hidden project risks into stab
 
 ![ArcGIS Pro Guardian HTML report](plugins/arcgis-pro-guardian/assets/report-preview.png)
 
+## Interview-ready case study
+
+[![Watch the 66-second ArcGIS Pro Guardian demo](docs/interview/demo-cover.png)](docs/interview/arcgis-pro-guardian-demo-66s.mp4)
+
+The reproducible ArcPy case starts from a saved project with an empty map and no layout, then compares a corrected copy against that baseline:
+
+| | Before | After |
+|---|---:|---:|
+| Health score | 88 / B | 100 / A |
+| Delivery status | Review | Pass |
+| Errors / warnings | 0 / 2 | 0 / 0 |
+| Baseline result | — | +12 points · 2 resolved |
+
+- [Read the Chinese case study](docs/case-study/README.zh-CN.md)
+- [Use the three-minute Chinese interview pitch](docs/interview/three-minute-pitch.zh-CN.md)
+- [Practice the technical Q&A](docs/interview/qa.zh-CN.md)
+- [Follow the 66-second demo script](docs/interview/demo-script.zh-CN.md)
+
+The sample data is synthetic, but both reports were produced from real saved `.aprx` files using ArcGIS Pro's ArcPy runtime. Published reports redact the Windows user-profile prefix.
+
 ## Why it exists
 
 ArcGIS automation projects usually focus on running geoprocessing tools or controlling a live Pro session. Guardian focuses on the last mile: proving that a project is healthy, portable, and ready for another person or machine.
