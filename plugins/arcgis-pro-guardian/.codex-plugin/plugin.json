@@ -1,0 +1,31 @@
+{
+  "name": "arcgis-pro-guardian",
+  "version": "0.1.0",
+  "description": "Audit saved ArcGIS Pro projects for broken sources, portability risks, spatial-reference drift, and release-readiness issues.",
+  "author": {
+    "name": "ArcGIS Pro Guardian contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "arcgis-pro",
+    "arcpy",
+    "gis",
+    "project-audit",
+    "data-quality"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "ArcGIS Pro Guardian",
+    "shortDescription": "Find ArcGIS Pro project risks before handoff.",
+    "longDescription": "Run a local, read-only ArcPy audit over a saved .aprx project and get structured findings for broken layers, missing data, path portability, duplicate names, and spatial-reference drift.",
+    "developerName": "ArcGIS Pro Guardian contributors",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive"],
+    "defaultPrompt": [
+      "Audit this ArcGIS Pro project for release risks.",
+      "Find broken layers and missing data in this .aprx.",
+      "Check whether this project is portable to another machine."
+    ],
+    "brandColor": "#2E7D32"
+  }
+}
