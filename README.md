@@ -31,11 +31,11 @@ The script never saves the project or rewrites data sources. Use `--strict` in C
 ## Install from this repository
 
 ```powershell
-codex plugin marketplace add <owner>/arcgis-pro-guardian
+codex plugin marketplace add https://github.com/wanghan7355608/arcgis-pro-guardian
 codex plugin add arcgis-pro-guardian@personal
 ```
 
-The marketplace manifest is at `.agents/plugins/marketplace.json`. Replace `<owner>` after creating the GitHub repository.
+The marketplace manifest is at `.agents/plugins/marketplace.json`.
 
 ## License
 

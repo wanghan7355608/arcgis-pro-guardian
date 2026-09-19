@@ -5,6 +5,8 @@
   "author": {
     "name": "ArcGIS Pro Guardian contributors"
   },
+  "homepage": "https://github.com/wanghan7355608/arcgis-pro-guardian",
+  "repository": "https://github.com/wanghan7355608/arcgis-pro-guardian",
   "license": "MIT",
   "keywords": [
     "arcgis-pro",
