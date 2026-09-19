@@ -2,6 +2,7 @@
 
 ## 0.2.0
 
+- Added a native ArcGIS Pro Python Toolbox with an **Audit ArcGIS Pro Project** geoprocessing tool.
 - Added 0–100 project health scoring and letter grades.
 - Added layer, table, layout, source-type, and policy-root checks.
 - Added JSON policy overrides with per-check severity controls.

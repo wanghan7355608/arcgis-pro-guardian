@@ -1,6 +1,6 @@
 {
   "name": "arcgis-pro-guardian",
-  "version": "0.2.0+codex.20260919132403",
+  "version": "0.2.0+codex.20260919133523",
   "description": "Score, diff, and report ArcGIS Pro project risks with a local-first, policy-driven audit engine.",
   "author": {
     "name": "ArcGIS Pro Guardian contributors"

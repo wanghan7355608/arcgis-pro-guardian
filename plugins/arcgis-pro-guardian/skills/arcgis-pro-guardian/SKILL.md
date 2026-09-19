@@ -18,6 +18,7 @@ Use this skill for ArcGIS Pro project health checks, delivery gates, migration r
 - emit text, JSON, Markdown, or a standalone responsive HTML dashboard;
 - redact the current user-profile prefix before sharing a report;
 - return stable exit codes for automation: `0` pass, `1` policy failure, `2` runtime/configuration failure.
+- expose the same engine inside ArcGIS Pro through `arcgis/ArcGISProGuardian.pyt`.
 
 ## Workflow
 
@@ -38,6 +39,8 @@ Use this skill for ArcGIS Pro project health checks, delivery gates, migration r
 4. For repeat audits, save an unredacted JSON report locally and compare the next run with `--baseline <previous.json>`. Report new and resolved findings separately.
 5. For team delivery rules, copy `assets/default-policy.json`, change only the needed check severities and source roots, then pass `--policy <policy.json>`.
 6. Summarize the score, error/warning counts, new regressions, and the three most actionable findings. Link the generated report when one was requested.
+
+When the user asks to run Guardian inside ArcGIS Pro, add `arcgis/ArcGISProGuardian.pyt` from the Catalog pane and use **Audit ArcGIS Pro Project** in the Geoprocessing pane. The toolbox uses the same policy, baseline, scoring, and reporting engine as the CLI.
 
 ## Safety and interpretation
 

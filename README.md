@@ -46,6 +46,16 @@ Exit codes are designed for automation:
 - `1`: findings reached the `--fail-on` threshold;
 - `2`: ArcPy, project, baseline, policy, or output failure.
 
+## Use it inside ArcGIS Pro
+
+Guardian also ships as a native Python Toolbox:
+
+`plugins/arcgis-pro-guardian/arcgis/ArcGISProGuardian.pyt`
+
+In ArcGIS Pro, open the Catalog pane, right-click **Toolboxes**, choose **Add Toolbox**, and select that file. The **Audit ArcGIS Pro Project** tool exposes project, report format, policy, baseline, failure threshold, and path-redaction parameters in the standard Geoprocessing pane.
+
+The tool writes the report even when a configured delivery gate fails, so the failure remains diagnosable.
+
 ## Save and compare a baseline
 
 ```powershell
