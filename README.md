@@ -4,6 +4,10 @@
 
 <h1 align="center">ArcGIS Pro Guardian</h1>
 
+<p align="center">
+  <a href="https://github.com/wanghan7355608/arcgis-pro-guardian/actions/workflows/ci.yml"><img src="https://github.com/wanghan7355608/arcgis-pro-guardian/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+</p>
+
 <p align="center"><strong>A local-first release gate for ArcGIS Pro projects.</strong></p>
 
 ArcGIS Pro Guardian audits a saved `.aprx`, turns hidden project risks into stable findings, assigns a 0–100 health score, compares regressions with a baseline, and produces a polished standalone HTML report. It reads project metadata through ArcPy and never saves or rewrites the project.

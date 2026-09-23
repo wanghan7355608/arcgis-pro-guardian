@@ -19,7 +19,7 @@ from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional
 
 
 SCHEMA_VERSION = 2
-TOOL_VERSION = "0.2.0"
+TOOL_VERSION = "0.3.0"
 SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
 FAIL_ON_CHOICES = ("never", "error", "warning")
 RASTER_EXTENSIONS = (".tif", ".tiff", ".img", ".jp2", ".png", ".jpg", ".jpeg")

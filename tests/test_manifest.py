@@ -13,7 +13,7 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(plugin["name"], "arcgis-pro-guardian")
         self.assertEqual(marketplace["plugins"][0]["name"], plugin["name"])
         self.assertEqual(marketplace["plugins"][0]["source"]["path"], "./plugins/arcgis-pro-guardian")
-        self.assertTrue(plugin["version"].startswith("0.2.0"))
+        self.assertTrue(plugin["version"].startswith("0.3.0"))
 
 
 if __name__ == "__main__":

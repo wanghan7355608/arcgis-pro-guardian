@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
 - Fixed baseline fingerprints colliding when one map holds two items with the same name, which dropped one of them from the delta while the score still counted both. Repeat occurrences are now disambiguated, and only repeat occurrences, so a project without duplicates keeps the exact fingerprints its existing baselines stored.
 - Fixed a malformed policy structure such as `"checks": "none"` raising `AttributeError`, which escaped the command line's error handling as a traceback and exit code 1 — the code documented to mean a finding reached the fail-on threshold.
