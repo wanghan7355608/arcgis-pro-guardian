@@ -267,6 +267,24 @@ def safe_spatial_reference(arcpy: Any, item: Any) -> Optional[str]:
         return None
 
 
+def _root_policy_applies(kind: str, source: str) -> bool:
+    """Whether an allowed-roots policy can make a statement about this source.
+
+    Remote and in-memory sources have no filesystem location to place, so they
+    are exempt. "other" is the unclassified fallback, and a relative source such
+    as "data\\roads.dbf" lands there because it carries no drive letter -- but it
+    is still a path, and a path that cannot be placed under an approved root is
+    exactly what an allow-list exists to catch. A value with no separator at all
+    (a query layer's SQL text, for example) is not a path, and reporting it as
+    outside every root would be noise rather than a finding.
+    """
+    if kind in ("web-service", "memory"):
+        return False
+    if kind == "other":
+        return "\\" in source or "/" in source
+    return True
+
+
 def _check_source_policy(
     source: str,
     policy: Mapping[str, Any],
@@ -315,7 +333,7 @@ def _check_source_policy(
         )
 
     allowed_roots = policy.get("allowed_source_roots", [])
-    if allowed_roots and kind not in ("web-service", "memory", "other"):
+    if allowed_roots and _root_policy_applies(kind, source):
         if not any(path_under_root(source, root) for root in allowed_roots):
             add_finding(
                 findings,

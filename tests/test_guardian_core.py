@@ -317,6 +317,63 @@ class GuardianTests(unittest.TestCase):
         merged = merged_policy({"checks": {"NO_MAPS": "off"}, "require_layout": True})
         self.assertEqual(merged["checks"]["NO_MAPS"], "off")
 
+    def test_allowed_roots_cover_unclassified_but_path_like_sources(self):
+        # A relative "data\roads.dbf" carries no drive letter, so source_kind
+        # cannot name it and it fell through to "other", which the allow-list
+        # exempted. A policy could not place the source, and that was treated as
+        # a pass -- the one outcome an allow-list exists to prevent.
+        project = FakeProject(
+            [
+                FakeMap("Operations", layers=[FakeItem("Roads", r"data\roads.dbf")]),
+            ],
+            [FakeLayout("Overview", [FakeFrame()])],
+        )
+        policy = merged_policy({"allowed_source_roots": [r"D:\PublishedGIS"]})
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir) / "relative.aprx"
+            project_path.write_bytes(b"fake")
+            report = audit_project(project_path, FakeArcPy(project), policy)
+        codes = {item["code"] for item in report["findings"]}
+        self.assertIn("SOURCE_OUTSIDE_ALLOWED_ROOTS", codes)
+
+    def test_a_source_that_is_not_a_path_stays_exempt_from_allowed_roots(self):
+        # A query layer's dataSource is SQL text, not a location. Reporting it as
+        # outside every allowed root would be noise, not a finding.
+        project = FakeProject(
+            [
+                FakeMap("Operations", layers=[FakeItem("Query layer", "SELECT * FROM roads")]),
+            ],
+            [FakeLayout("Overview", [FakeFrame()])],
+        )
+        policy = merged_policy({"allowed_source_roots": [r"D:\PublishedGIS"]})
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir) / "query.aprx"
+            project_path.write_bytes(b"fake")
+            report = audit_project(project_path, FakeArcPy(project), policy)
+        codes = {item["code"] for item in report["findings"]}
+        self.assertNotIn("SOURCE_OUTSIDE_ALLOWED_ROOTS", codes)
+
+    def test_remote_and_memory_sources_are_exempt_from_allowed_roots(self):
+        project = FakeProject(
+            [
+                FakeMap(
+                    "Operations",
+                    layers=[
+                        FakeItem("Service", "https://example.test/FeatureServer/0"),
+                        FakeItem("Scratch", r"memory\scratch"),
+                    ],
+                )
+            ],
+            [FakeLayout("Overview", [FakeFrame()])],
+        )
+        policy = merged_policy({"allowed_source_roots": [r"D:\PublishedGIS"]})
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir) / "remote.aprx"
+            project_path.write_bytes(b"fake")
+            report = audit_project(project_path, FakeArcPy(project), policy)
+        codes = {item["code"] for item in report["findings"]}
+        self.assertNotIn("SOURCE_OUTSIDE_ALLOWED_ROOTS", codes)
+
     def test_unknown_report_format_is_rejected(self):
         with self.assertRaises(ValueError):
             render_report({"summary": {}}, "htlm")
