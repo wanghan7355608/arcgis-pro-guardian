@@ -94,8 +94,12 @@ class AuditProject:
             direction="Input",
         )
         fail_on.filter.type = "ValueList"
-        fail_on.filter.list = ["Error", "Warning", "Never"]
-        fail_on.value = "Error"
+        # "Policy" has to be a visible choice. Relying on Parameter.altered
+        # instead left the pane reading "Error" while the tool honoured the
+        # policy file's fail_on, so a run could pass or fail its gate with no
+        # visible reason why.
+        fail_on.filter.list = ["Policy", "Error", "Warning", "Never"]
+        fail_on.value = "Policy"
 
         redact_paths = arcpy.Parameter(
             displayName="Redact User Profile Paths",
@@ -144,12 +148,14 @@ class AuditProject:
 
         messages.addMessage("Opening saved project: {}".format(project_path))
         active_policy = load_policy(policy_path)
-        # An untouched Fail Tool On parameter defers to the policy file, mirroring
-        # the CLI where an omitted --fail-on does the same.
-        if parameters[5].altered and parameters[5].valueAsText:
-            fail_on = parameters[5].valueAsText.lower()
-        else:
+        # "Policy" defers to the policy file, mirroring the CLI where an omitted
+        # --fail-on does the same. The choice is explicit, so the pane always
+        # shows the threshold the run will actually use.
+        selected_fail_on = (parameters[5].valueAsText or "Policy").strip().lower()
+        if selected_fail_on == "policy":
             fail_on = str(active_policy.get("fail_on", "error"))
+        else:
+            fail_on = selected_fail_on
         report = audit_project(project_path, arcpy, active_policy)
 
         if baseline_path:

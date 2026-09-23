@@ -92,17 +92,50 @@ def load_policy(path: Optional[Path]) -> Dict[str, Any]:
 
 
 def validate_policy(policy: Mapping[str, Any]) -> None:
-    for code, severity in policy.get("checks", {}).items():
+    """Reject a policy that a team could believe in but Guardian would ignore.
+
+    Structural errors fail closed alongside value errors. The dangerous case is
+    a misspelled key: the merge used to accept it, no check ever read it, and a
+    team's "we disabled that check" would quietly not hold at the delivery gate.
+    """
+    unknown_keys = sorted(set(policy) - set(DEFAULT_POLICY))
+    if unknown_keys:
+        raise ValueError(
+            "Unknown policy key(s): {}. Known keys: {}".format(
+                ", ".join(unknown_keys), ", ".join(sorted(DEFAULT_POLICY))
+            )
+        )
+
+    checks = policy.get("checks", {})
+    if not isinstance(checks, Mapping):
+        raise ValueError("checks must be a JSON object mapping check codes to severities.")
+    unknown_codes = sorted(set(checks) - set(DEFAULT_POLICY["checks"]))
+    if unknown_codes:
+        raise ValueError(
+            "Unknown check code(s): {}. Known codes: {}".format(
+                ", ".join(unknown_codes), ", ".join(sorted(DEFAULT_POLICY["checks"]))
+            )
+        )
+    for code, severity in checks.items():
         if severity not in SEVERITY_ORDER and severity != "off":
             raise ValueError("Unsupported severity for {}: {}".format(code, severity))
-    for severity, weight in policy.get("score_weights", {}).items():
+
+    weights = policy.get("score_weights", {})
+    if not isinstance(weights, Mapping):
+        raise ValueError("score_weights must be a JSON object mapping severities to numbers.")
+    for severity, weight in weights.items():
         if severity not in SEVERITY_ORDER:
             raise ValueError("Unsupported score severity: {}".format(severity))
-        if not isinstance(weight, (int, float)) or weight < 0:
+        if isinstance(weight, bool) or not isinstance(weight, (int, float)) or weight < 0:
             raise ValueError("Score weights must be non-negative numbers.")
+
     for key in ("allowed_source_roots", "blocked_source_roots"):
         if not isinstance(policy.get(key, []), list):
             raise ValueError("{} must be a JSON array.".format(key))
+
+    if "require_layout" in policy and not isinstance(policy["require_layout"], bool):
+        raise ValueError("require_layout must be true or false.")
+
     if policy.get("fail_on") not in FAIL_ON_CHOICES:
         raise ValueError(
             "Unsupported fail_on value: {} (expected one of {})".format(
@@ -302,12 +335,24 @@ def _audit_source_item(
     arcpy: Any,
     policy: Mapping[str, Any],
     findings: List[Dict[str, Any]],
+    seen: MutableMapping[Any, int],
 ) -> Dict[str, Any]:
     name = str(getattr(item, "longName", None) or getattr(item, "name", "Unnamed item"))
     broken = bool(getattr(item, "isBroken", False))
     source = safe_data_source(item)
     item_report: Dict[str, Any] = {"name": name, "broken": broken}
     context = {"map": map_name, item_type: name}
+
+    # A map can legitimately hold two layers with the same name; that is one of
+    # the things Guardian reports. Fingerprints are derived from this context,
+    # so identical names would collide and the baseline diff would silently keep
+    # only one of them. Disambiguate on repeat, and only on repeat, so a project
+    # without duplicates keeps the exact fingerprints its baselines stored.
+    occurrence_key = (map_name, item_type, name)
+    occurrence = seen.get(occurrence_key, 0)
+    seen[occurrence_key] = occurrence + 1
+    if occurrence:
+        context["occurrence"] = occurrence
 
     if source:
         kind = source_kind(source)
@@ -386,6 +431,7 @@ def audit_project(project_path: Path, arcpy: Any, policy: Optional[Mapping[str, 
     findings: List[Dict[str, Any]] = []
     map_reports: List[Dict[str, Any]] = []
     layout_reports: List[Dict[str, Any]] = []
+    item_occurrences: Dict[Any, int] = {}
     total_layers = 0
     total_tables = 0
     total_sources = 0
@@ -445,7 +491,7 @@ def audit_project(project_path: Path, arcpy: Any, policy: Optional[Mapping[str, 
             if getattr(layer, "isGroupLayer", False):
                 continue
             layer_report = _audit_source_item(
-                layer, "layer", map_name, arcpy, active_policy, findings
+                layer, "layer", map_name, arcpy, active_policy, findings, item_occurrences
             )
             if layer_report.get("data_source"):
                 total_sources += 1
@@ -455,7 +501,7 @@ def audit_project(project_path: Path, arcpy: Any, policy: Optional[Mapping[str, 
 
         for table in tables:
             table_report = _audit_source_item(
-                table, "table", map_name, arcpy, active_policy, findings
+                table, "table", map_name, arcpy, active_policy, findings, item_occurrences
             )
             if table_report.get("data_source"):
                 total_sources += 1
@@ -765,7 +811,11 @@ def render_report(report: Mapping[str, Any], output_format: str) -> str:
         return render_markdown(report)
     if output_format == "html":
         return render_html(report)
-    return render_text(report)
+    if output_format == "text":
+        return render_text(report)
+    # Falling back to text used to write a plain-text file behind an .html name.
+    # A mistyped format is a caller bug and should read as one.
+    raise ValueError("Unsupported report format: {}".format(output_format))
 
 
 def should_fail(report: Mapping[str, Any], fail_on: str) -> bool:

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Fixed baseline fingerprints colliding when one map holds two items with the same name, which dropped one of them from the delta while the score still counted both. Repeat occurrences are now disambiguated, and only repeat occurrences, so a project without duplicates keeps the exact fingerprints its existing baselines stored.
+- Fixed a malformed policy structure such as `"checks": "none"` raising `AttributeError`, which escaped the command line's error handling as a traceback and exit code 1 — the code documented to mean a finding reached the fail-on threshold.
+- Fixed unknown policy keys and unknown check codes being merged in and then silently ignored, so a misspelled check name no longer leaves a team believing a check was disabled or hardened when nothing changed.
+- Fixed `require_layout` accepting a non-boolean value, where `"false"` read as true and promoted `NO_LAYOUTS` to a warning.
+- Fixed the Python Toolbox's **Fail Tool On** parameter displaying `Error` while the run honoured the policy file's `fail_on`, so a project could meet or miss its gate with no visible reason. Deferring to the policy is now an explicit `Policy` choice.
+- Fixed `render_report` falling back to a text report for an unrecognised format, which wrote plain text behind an `.html` name.
+- Added `GUARDIAN_DEBUG=1`, which prints a traceback when an audit fails so a bug inside Guardian is distinguishable from a project ArcPy cannot open.
 - Added a reproducible ArcPy Before/After case study with redacted JSON and HTML evidence.
 - Added a 66-second H.264 demo, a three-minute Chinese interview pitch, and technical Q&A notes.
 - Added `docs/case-study/reproduce.py`, which rebuilds both case-study projects from ArcGIS Pro's blank project and fails when the result no longer matches the published numbers. Committed `.aprx` files are no longer required to reproduce the case.

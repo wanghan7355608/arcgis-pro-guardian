@@ -9,11 +9,14 @@ SCRIPTS = Path(__file__).parents[1] / "plugins" / "arcgis-pro-guardian" / "scrip
 sys.path.insert(0, str(SCRIPTS))
 
 from guardian_core import (  # noqa: E402
+    _score,
     audit_project,
     compare_with_baseline,
     merged_policy,
     redact_report,
     render_html,
+    render_report,
+    should_fail,
     source_kind,
     validate_policy,
 )
@@ -242,6 +245,127 @@ class GuardianTests(unittest.TestCase):
         codes = {item["code"] for item in report["findings"]}
         self.assertIn("EMPTY_MAP", codes)
         self.assertEqual(report["metrics"]["layers"], 0)
+
+    def test_duplicate_layer_names_still_produce_distinct_fingerprints(self):
+        # Guardian reports duplicate layer names, so it has to survive them.
+        # Two same-named broken layers used to share a fingerprint because the
+        # context carried only the map and the name; the baseline diff keys off
+        # fingerprints, so one of the two silently vanished from the delta while
+        # the score still counted both.
+        project = FakeProject(
+            [
+                FakeMap(
+                    "Operations",
+                    layers=[
+                        FakeItem("Roads", r"C:\delivery\roads.shp", broken=True),
+                        FakeItem("Roads", r"C:\delivery\roads.shp", broken=True),
+                    ],
+                )
+            ],
+            [FakeLayout("Overview", [FakeFrame()])],
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir) / "duplicates.aprx"
+            project_path.write_bytes(b"fake")
+            report = audit_project(project_path, FakeArcPy(project), merged_policy())
+
+        broken = [item for item in report["findings"] if item["code"] == "BROKEN_LAYER"]
+        self.assertEqual(len(broken), 2)
+        fingerprints = [item["fingerprint"] for item in report["findings"]]
+        self.assertEqual(len(fingerprints), len(set(fingerprints)))
+
+        # With an empty baseline every current finding must be reported as new.
+        compare_with_baseline(report, {"summary": {"health_score": 100}, "findings": []})
+        self.assertEqual(len(report["delta"]["new_findings"]), len(report["findings"]))
+
+    def test_a_project_without_duplicates_keeps_its_baseline_fingerprints(self):
+        # Disambiguation must only kick in on repeat, or every existing baseline
+        # in the wild would read as fully resolved and fully re-added.
+        project = FakeProject(
+            [
+                FakeMap(
+                    "Operations",
+                    layers=[FakeItem("Roads", r"C:\delivery\roads.shp", broken=True)],
+                )
+            ],
+            [FakeLayout("Overview", [FakeFrame()])],
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir) / "single.aprx"
+            project_path.write_bytes(b"fake")
+            report = audit_project(project_path, FakeArcPy(project), merged_policy())
+        broken = next(item for item in report["findings"] if item["code"] == "BROKEN_LAYER")
+        self.assertNotIn("occurrence", broken["context"])
+
+    def test_malformed_policy_structure_fails_closed(self):
+        # These used to raise AttributeError. The CLI catches OSError/ValueError
+        # only, so a policy typo escaped as a traceback with exit code 1 -- the
+        # code documented to mean "a finding reached the fail-on threshold".
+        for malformed in ({"checks": "none"}, {"checks": ["NO_MAPS"]}, {"score_weights": 5}):
+            with self.assertRaises(ValueError):
+                merged_policy(malformed)
+
+    def test_unknown_policy_keys_and_check_codes_are_rejected(self):
+        # A misspelled key merged cleanly and was then ignored by every check,
+        # so a team could believe a check was off while it still ran.
+        with self.assertRaises(ValueError):
+            merged_policy({"checks": {"BROKEN_LAYERS": "off"}})
+        with self.assertRaises(ValueError):
+            merged_policy({"cheks": {"NO_MAPS": "off"}})
+        with self.assertRaises(ValueError):
+            merged_policy({"require_layout": "false"})
+        merged = merged_policy({"checks": {"NO_MAPS": "off"}, "require_layout": True})
+        self.assertEqual(merged["checks"]["NO_MAPS"], "off")
+
+    def test_unknown_report_format_is_rejected(self):
+        with self.assertRaises(ValueError):
+            render_report({"summary": {}}, "htlm")
+
+    def test_score_boundaries_and_status(self):
+        policy = merged_policy()
+        self.assertEqual(_score([], policy)["health_score"], 100)
+        self.assertEqual(_score([], policy)["status"], "pass")
+
+        one_error = _score([{"severity": "error"}], policy)
+        self.assertEqual(one_error["health_score"], 75)
+        self.assertEqual(one_error["grade"], "C")
+        self.assertEqual(one_error["status"], "fail")
+
+        two_warnings = _score([{"severity": "warning"}] * 2, policy)
+        self.assertEqual(two_warnings["health_score"], 88)
+        self.assertEqual(two_warnings["grade"], "B")
+        self.assertEqual(two_warnings["status"], "review")
+
+        # Errors cost 25 each, so the score clamps at zero instead of going negative.
+        many_errors = _score([{"severity": "error"}] * 8, policy)
+        self.assertEqual(many_errors["health_score"], 0)
+        self.assertEqual(many_errors["grade"], "F")
+
+        # Info findings carry no weight, so they never move the score.
+        self.assertEqual(_score([{"severity": "info"}] * 5, policy)["health_score"], 100)
+
+
+class ExitCodeTests(unittest.TestCase):
+    """The exit codes are the automation contract, so pin them down."""
+
+    def summary(self, errors=0, warnings=0, info=0):
+        return {"summary": {"errors": errors, "warnings": warnings, "info": info}}
+
+    def test_never_suppresses_every_threshold(self):
+        self.assertFalse(should_fail(self.summary(errors=3, warnings=2), "never"))
+
+    def test_error_threshold_ignores_warnings(self):
+        self.assertFalse(should_fail(self.summary(warnings=2), "error"))
+        self.assertTrue(should_fail(self.summary(errors=1), "error"))
+
+    def test_warning_threshold_fails_on_errors_or_warnings(self):
+        self.assertTrue(should_fail(self.summary(errors=1), "warning"))
+        self.assertTrue(should_fail(self.summary(warnings=1), "warning"))
+        self.assertFalse(should_fail(self.summary(info=4), "warning"))
+
+    def test_a_clean_report_passes_every_threshold(self):
+        for threshold in ("never", "error", "warning"):
+            self.assertFalse(should_fail(self.summary(), threshold))
 
 
 if __name__ == "__main__":

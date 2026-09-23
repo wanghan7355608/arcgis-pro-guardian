@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import traceback
 from pathlib import Path
 from typing import List, Optional
 
@@ -103,6 +105,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(str(exc), file=sys.stderr)
         return 2
     except Exception as exc:  # ArcPy exception types vary by Pro release.
+        # Without the traceback, a bug inside Guardian itself is indistinguishable
+        # from a project that ArcPy cannot open.
+        if os.environ.get("GUARDIAN_DEBUG"):
+            traceback.print_exc()
         print("ArcGIS Pro could not audit the project: {}".format(exc), file=sys.stderr)
         return 2
 
