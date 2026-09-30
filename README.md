@@ -12,13 +12,13 @@
 
 ArcGIS Pro Guardian audits a saved `.aprx`, turns hidden project risks into stable findings, assigns a 0–100 health score, compares regressions with a baseline, and produces a polished standalone HTML report. It reads project metadata through ArcPy and never saves or rewrites the project.
 
+It is for anyone who hands an ArcGIS Pro project to someone else — a colleague, a client, an archive, or a build machine — and needs to know it will still open with its data intact. Broken sources, absolute paths that only exist on your laptop, and silent spatial-reference mismatches are cheap to find now and expensive to find after delivery.
+
 ![ArcGIS Pro Guardian HTML report](plugins/arcgis-pro-guardian/assets/report-preview.png)
 
-## Interview-ready case study
+## A reproducible demo: from a risky project to a clean one
 
-[![Watch the 66-second ArcGIS Pro Guardian demo](docs/interview/demo-cover.png)](docs/interview/arcgis-pro-guardian-demo-66s.mp4)
-
-The reproducible ArcPy case starts from a saved project with an empty map and no layout, then compares a corrected copy against that baseline:
+The repo ships a runnable end-to-end case. It builds a saved project that has an empty map, no layout, and a machine-bound data path; audits it; applies the fixes; and audits again against the first result as a baseline:
 
 | | Before | After |
 |---|---:|---:|
@@ -27,10 +27,8 @@ The reproducible ArcPy case starts from a saved project with an empty map and no
 | Errors / warnings | 0 / 2 | 0 / 0 |
 | Baseline result | — | +12 points · 2 resolved |
 
-- [Read the Chinese case study](docs/case-study/README.zh-CN.md)
-- [Use the three-minute Chinese interview pitch](docs/interview/three-minute-pitch.zh-CN.md)
-- [Practice the technical Q&A](docs/interview/qa.zh-CN.md)
-- [Follow the 66-second demo script](docs/interview/demo-script.zh-CN.md)
+- [Case study walkthrough (中文)](docs/case-study/README.zh-CN.md)
+- [Watch the 66-second demo](docs/interview/arcgis-pro-guardian-demo-66s.mp4)
 
 Rebuild and verify the whole case with one command, using the Python interpreter bundled with ArcGIS Pro:
 
@@ -149,6 +147,14 @@ Real `.aprx` audits still require the Python interpreter bundled with ArcGIS Pro
 ## Scope and safety
 
 Guardian does not inspect feature rows, contact web services, repair paths, or save projects. Reports may include local and UNC paths; use `--redact-paths` before publishing them.
+
+## Presentation material
+
+The demo above has supporting material for talks and walkthroughs:
+
+- [Demo video script (中文)](docs/interview/demo-script.zh-CN.md)
+- [Three-minute walkthrough (中文)](docs/interview/three-minute-pitch.zh-CN.md)
+- [Technical Q&A (中文)](docs/interview/qa.zh-CN.md)
 
 ## License
 
