@@ -82,11 +82,11 @@ EXPECTED_AFTER = {
 
 def find_blank_project(override: Path | None) -> Path:
     if override is not None:
-        if not override.exists():
-            raise FileNotFoundError("Blank project not found: {}".format(override))
+        if not override.is_file():
+            raise FileNotFoundError("Blank project is not a file: {}".format(override))
         return override
     for candidate in BLANK_PROJECT_CANDIDATES:
-        if candidate.exists():
+        if candidate.is_file():
             return candidate
     raise FileNotFoundError(
         "Could not find the blank ArcGIS Pro project. Create one in ArcGIS Pro "
@@ -158,17 +158,24 @@ def verify(label: str, actual: dict, expected: dict) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", default=str(REPO_ROOT / "docs" / "case-study" / "reproduced"))
+    parser.add_argument(
+        "--output",
+        default=str(REPO_ROOT / "docs" / "case-study" / "reproduced"),
+        help="New output directory; existing paths are never deleted or overwritten",
+    )
     parser.add_argument("--blank-project", default=None, help="Override the blank .aprx to start from")
     args = parser.parse_args(argv)
 
-    case_dir = Path(args.output).resolve()
-    if case_dir.exists():
-        shutil.rmtree(case_dir)
-    case_dir.mkdir(parents=True)
+    case_dir = Path(args.output).absolute()
+    if case_dir.exists() or case_dir.is_symlink():
+        parser.error("Output path already exists; choose a new directory with --output: {}".format(case_dir))
 
     policy = load_policy(POLICY_PATH)
     blank = find_blank_project(Path(args.blank_project) if args.blank_project else None)
+    try:
+        case_dir.mkdir(parents=True, exist_ok=False)
+    except FileExistsError:
+        parser.error("Output path already exists; choose a new directory with --output: {}".format(case_dir))
     print("Blank project : {}".format(blank))
     print("Output        : {}".format(case_dir))
 
