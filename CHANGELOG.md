@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Fixed case-study reproduction deleting any existing `--output` directory. Existing paths are now refused, input validation precedes directory creation, and a concurrently created output is preserved.
+- Added regression tests for populated and empty directories, existing files, dangling symbolic links, the repository root, missing or directory-valued blank project inputs, a competing output directory, and the report flow with a new directory.
+- Clarified that the demo's 100/A score depends on its policy treating absolute source paths as informational.
+
 ## 0.3.0
 
 - Fixed baseline fingerprints colliding when one map holds two items with the same name, which dropped one of them from the delta while the score still counted both. Repeat occurrences are now disambiguated, and only repeat occurrences, so a project without duplicates keeps the exact fingerprints its existing baselines stored.

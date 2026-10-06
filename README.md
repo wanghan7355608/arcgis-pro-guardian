@@ -38,7 +38,11 @@ Rebuild and verify the whole case with one command, using the Python interpreter
 
 The script rebuilds both projects from ArcGIS Pro's own blank project, then asserts the result still matches the published numbers and exits non-zero if it does not. No `.aprx` needs to be committed, so the case study cannot drift away from its evidence.
 
+The output directory must not already exist. The default is `docs/case-study/reproduced`; to run again, pass a new directory such as `--output docs/case-study/reproduced-next`. Existing directories, files, and symbolic links are refused rather than deleted or overwritten.
+
 The sample data is synthetic, but both reports were produced from real saved `.aprx` files using ArcGIS Pro's ArcPy runtime. Published reports redact the Windows user-profile prefix.
+
+The demo policy sets absolute source paths to `info`, which does not deduct points. Its 100/A result is specific to that policy; the remaining absolute paths still need review when moving the project to another machine.
 
 ## Why it exists
 
